@@ -3,27 +3,26 @@ package com.example.navigationdemo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import android.navigation3.runtime.rememberNavBackStack
+import android.navigation3.ui.NavDisplay
+import android.navigation3.runtime.entry
+import android.navigation3.runtime.entryProvider
+import com.example.navigationdemo.screens.*
 import com.example.navigationdemo.ui.theme.NavigationDemoTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             NavigationDemoTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    MainScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -31,17 +30,42 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
+fun MainScreen(modifier: Modifier = Modifier) {
+    // Стек с начальным экраном Home
+    val backStack = rememberNavBackStack(HomeScreen)
+
+    // Обработчик переходов на новый экран
+    val onNavigation: (NavKey) -> Unit = { key ->
+        backStack.add(key)
+    }
+
+    // Очистка стека до главного экрана (оставляем только Home)
+    val onClearBackStack: () -> Unit = {
+        while (backStack.size > 1) {
+            backStack.removeLastOrNull()
+        }
+    }
+
+    NavDisplay(
+        backStack = backStack,
+        onBack = {
+            backStack.removeLastOrNull()   // стандартное возвращение назад
+            // Альтернатива: очищать всё кроме первого (см. конец лабораторной)
+        },
+        entryProvider = entryProvider {
+            entry<HomeScreen> { Home(onNavigation) }
+            entry<WelcomeScreen> { key -> Welcome(onNavigation, key.name) }
+            entry<ProfileScreen> { Profile(onClearBackStack) }
+        }
     )
 }
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun MainScreenPreview() {
     NavigationDemoTheme {
-        Greeting("Android")
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            MainScreen(modifier = Modifier.padding(innerPadding))
+        }
     }
 }
